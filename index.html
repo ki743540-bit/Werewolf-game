@@ -227,10 +227,8 @@
       </div>
       <span class="text-xs uppercase tracking-widest text-purple-400 font-bold block">水晶玉の透視結果</span>
       <h3 id="seer-modal-name" class="text-2xl font-bold text-slate-100">村人名</h3>
-      <div id="seer-modal-result" class="py-3 px-4 rounded-xl font-bold text-lg">
-        <!-- 人狼か人間か動的挿入 -->
-      </div>
-      <button onclick="document.getElementById('seer-reveal-modal').classList.add('hidden')" class="w-full py-2.5 bg-purple-800 hover:bg-purple-700 text-purple-100 font-bold text-xs rounded-xl shadow-lg transition-all active:scale-95">
+      <div id="seer-modal-result" class="py-3 px-4 rounded-xl font-bold text-lg"></div>
+      <button onclick="document.getElementById('seer-reveal-modal').classList.add('hidden')" class="w-full py-2.5 bg-purple-800 hover:bg-purple-700 text-purple-100 font-bold text-xs rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer">
         水晶をしまう（了解）
       </button>
     </div>
@@ -257,7 +255,7 @@
             中世の村の人狼
             <span class="text-[10px] font-sans font-normal px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-700/50 text-amber-300">P2P オンライン</span>
           </h1>
-          <p id="connection-status-text" class="text-xs text-slate-400">待機中...</p>
+          <p id="connection-status-text" class="text-xs text-slate-400">準備完了</p>
         </div>
       </div>
 
@@ -274,7 +272,7 @@
           <span class="text-[10px] text-amber-500">📋</span>
         </div>
         <!-- サウンド切替 -->
-        <button id="btn-sound-toggle" class="p-2 rounded-lg bg-night-800 border border-slate-700 text-slate-300 hover:text-amber-400 text-xs transition-colors">
+        <button id="btn-sound-toggle" class="p-2 rounded-lg bg-night-800 border border-slate-700 text-slate-300 hover:text-amber-400 text-xs transition-colors cursor-pointer">
           🔊
         </button>
       </div>
@@ -301,10 +299,10 @@
 
       <!-- 部屋作成 or 参加タブ -->
       <div id="lobby-action-tabs" class="grid grid-cols-2 gap-2 bg-night-800 p-1 rounded-xl border border-slate-800">
-        <button id="tab-btn-create" class="py-2 rounded-lg text-xs font-bold transition-all bg-amber-600 text-slate-950 shadow-md">
+        <button id="tab-btn-create" class="py-2.5 rounded-lg text-xs font-bold transition-all bg-amber-600 text-slate-950 shadow-md cursor-pointer">
           村を建てる（親機）
         </button>
-        <button id="tab-btn-join" class="py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+        <button id="tab-btn-join" class="py-2.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all cursor-pointer">
           村に入る（子機）
         </button>
       </div>
@@ -313,9 +311,9 @@
       <div id="panel-create" class="space-y-4">
         <div class="p-3 bg-night-850 rounded-xl border border-amber-900/30 text-xs text-slate-300 space-y-1">
           <p class="font-bold text-amber-300">👑 親機（ホスト）の役割:</p>
-          <p>発行される4桁の部屋コードを友人に共有してください。友人は「村に入る」からコードを入力して参加できます（テスト用のBot村人も自由に追加可能）。</p>
+          <p>ボタンを押すと4桁の部屋コードが即座に発行されます。招待リンクを友達に送ればワンタップで参加できます（Botも追加可能）。</p>
         </div>
-        <button id="btn-create-room" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-night-950 font-cinzel font-bold rounded-xl shadow-lg transition-all active:scale-[0.99]">
+        <button id="btn-create-room" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-night-950 font-cinzel font-bold rounded-xl shadow-lg transition-all active:scale-[0.99] cursor-pointer">
           村を興す（部屋を作成）
         </button>
       </div>
@@ -326,31 +324,35 @@
           <label class="text-xs text-amber-200/80 font-bold block">4桁の部屋コード</label>
           <input id="input-join-code" type="text" maxlength="6" placeholder="例: 4821" class="w-full px-4 py-2.5 rounded-xl bg-night-800 border border-slate-700 text-amber-400 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors text-center text-lg font-mono font-bold tracking-widest uppercase shadow-inner">
         </div>
-        <button id="btn-join-room" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-slate-100 font-cinzel font-bold rounded-xl shadow-lg transition-all active:scale-[0.99]">
+        <button id="btn-join-room" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-slate-100 font-cinzel font-bold rounded-xl shadow-lg transition-all active:scale-[0.99] cursor-pointer">
           村へ向かう（接続する）
         </button>
       </div>
 
       <!-- 待機室（プレイヤー一覧＆役職設定） -->
       <div id="lobby-room-area" class="space-y-4 hidden border-t border-slate-800 pt-4">
+        
+        <!-- 招待URLコピーボタン -->
+        <button id="btn-copy-invite" class="w-full py-2.5 bg-night-800 hover:bg-night-700 border border-amber-500/50 text-amber-300 font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98">
+          <span>🔗</span> 招待URLをコピー（LINE/Discord共有用）
+        </button>
+
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <span>👥</span> 集まった村人 (<span id="lobby-player-count">1</span>/8人)
           </span>
           <!-- Bot追加/削除ボタン -->
           <div id="host-bot-controls" class="flex gap-1.5 hidden">
-            <button id="btn-add-bot" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 transition-all">
+            <button id="btn-add-bot" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 transition-all cursor-pointer">
               + Bot追加
             </button>
-            <button id="btn-remove-bot" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-rose-400 transition-all">
+            <button id="btn-remove-bot" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-rose-400 transition-all cursor-pointer">
               - Bot削除
             </button>
           </div>
         </div>
 
-        <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <!-- 参加者アバター動的生成 -->
-        </div>
+        <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
 
         <!-- ホスト専用役職構成設定 -->
         <div id="host-role-config" class="p-3 bg-night-850 rounded-xl border border-slate-800 space-y-2 hidden">
@@ -361,7 +363,7 @@
         </div>
 
         <div id="host-start-container" class="hidden">
-          <button id="btn-start-game" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-night-950 font-cinzel font-bold text-base rounded-xl shadow-xl transition-all active:scale-[0.99]">
+          <button id="btn-start-game" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-night-950 font-cinzel font-bold text-base rounded-xl shadow-xl transition-all active:scale-[0.99] cursor-pointer">
             運命の幕を開ける（ゲーム開始）
           </button>
           <p id="start-condition-note" class="text-[11px] text-center text-slate-400 mt-1.5">最低4人必要です（Botを追加して即時テスト可能）</p>
@@ -410,8 +412,8 @@
       </div>
 
       <div class="text-center">
-        <button id="btn-confirm-role" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-night-950 font-cinzel font-bold text-sm rounded-xl shadow-lg transition-all active:scale-95">
-          役職を確認した（夜明けへ）
+        <button id="btn-confirm-role" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-night-950 font-cinzel font-bold text-sm rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer">
+          役職を確認した（夜へ進む）
         </button>
       </div>
     </div>
@@ -427,11 +429,4 @@
             <span id="game-day-label">1日目</span>
           </div>
           <div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <h2 id="game-phase-title" class="text-base sm:text-lg font-bold text-slate-100">白日の広場（議論）</h2>
-              <!-- 投票進捗ステータスバッジ -->
-              <span id="vote-progress-badge" class="hidden text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-950 text-amber-300 border border-amber-600/50">
-                投票: 0/0人完了
-              </span>
-            </div>
-            <p id="game-
+            <div class="flex 
