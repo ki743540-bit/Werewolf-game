@@ -1,0 +1,437 @@
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中世の村の人狼 - WebRTCマルチプレイ</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            night: {
+              950: '#05070d',
+              900: '#090d16',
+              850: '#0f1726',
+              800: '#162032',
+              700: '#1e293b',
+              600: '#334155'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- PeerJS CDN（フォールバック付き） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Noto Serif JP', serif;
+      background-color: #070a12;
+      color: #f1f5f9;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    .font-cinzel {
+      font-family: 'Cinzel', serif;
+    }
+
+    /* 焚き火の炎の揺らめき */
+    @keyframes flameFlicker {
+      0%, 100% { transform: scale(1) rotate(-1deg); filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.7)); }
+      25% { transform: scale(1.05, 0.95) rotate(1deg); filter: drop-shadow(0 0 24px rgba(239, 68, 68, 0.8)); }
+      50% { transform: scale(0.96, 1.04) rotate(-0.5deg); filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.9)); }
+      75% { transform: scale(1.02, 0.98) rotate(1.5deg); filter: drop-shadow(0 0 28px rgba(251, 191, 36, 0.75)); }
+    }
+
+    .fire-glow {
+      animation: flameFlicker 3s infinite ease-in-out;
+    }
+
+    /* 月光の静かな輝き */
+    @keyframes moonGlow {
+      0%, 100% { filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.4)); }
+      50% { filter: drop-shadow(0 0 28px rgba(147, 197, 253, 0.7)); }
+    }
+
+    .moon-glow {
+      animation: moonGlow 4s infinite ease-in-out;
+    }
+
+    /* 立ち昇る火の粉（Ember Sparks） */
+    @keyframes floatSpark {
+      0% {
+        transform: translateY(100vh) translateX(0) scale(0.6);
+        opacity: 0;
+      }
+      15% { opacity: 0.85; }
+      85% { opacity: 0.85; }
+      100% {
+        transform: translateY(-20vh) translateX(50px) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    .ember-spark {
+      position: absolute;
+      pointer-events: none;
+      background: radial-gradient(circle, #fde047 15%, #f97316 60%, transparent 80%);
+      border-radius: 50%;
+      animation: floatSpark linear infinite;
+    }
+
+    /* 漂う濃霧 */
+    @keyframes fogDrift {
+      0% { transform: translateX(-15%); opacity: 0.15; }
+      50% { transform: translateX(10%); opacity: 0.35; }
+      100% { transform: translateX(-15%); opacity: 0.15; }
+    }
+
+    .fog-layer {
+      background: radial-gradient(ellipse at center, rgba(148, 163, 184, 0.15) 0%, transparent 70%);
+      filter: blur(28px);
+      animation: fogDrift 20s ease-in-out infinite alternate;
+    }
+
+    /* フェーズ切り替え幕間スプラッシュ */
+    @keyframes splashZoom {
+      0% { transform: scale(0.85); opacity: 0; filter: blur(8px); }
+      25% { transform: scale(1.02); opacity: 1; filter: blur(0px); }
+      75% { transform: scale(1); opacity: 1; filter: blur(0px); }
+      100% { transform: scale(1.1); opacity: 0; filter: blur(6px); }
+    }
+
+    .phase-splash-anim {
+      animation: splashZoom 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* 刻印スタンプ */
+    @keyframes stampImpact {
+      0% { transform: scale(2.2) rotate(-12deg); opacity: 0; }
+      50% { transform: scale(0.9) rotate(3deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .stamp-anim {
+      animation: stampImpact 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* 襲撃・処刑の爪痕スラッシュ */
+    @keyframes slashCut {
+      0% { width: 0%; opacity: 1; }
+      60% { width: 130%; opacity: 1; }
+      100% { width: 140%; opacity: 0; }
+    }
+
+    .slash-line {
+      position: absolute;
+      top: 50%;
+      left: -15%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #ef4444, #fecaca, #ef4444, transparent);
+      box-shadow: 0 0 12px #ef4444, 0 0 24px #991b1b;
+      transform: rotate(-35deg);
+      animation: slashCut 0.45s ease-out forwards;
+      pointer-events: none;
+    }
+
+    /* 水晶玉の占いアニメーション */
+    @keyframes crystalSwirl {
+      0% { transform: rotate(0deg) scale(0.95); box-shadow: 0 0 20px #a855f7; }
+      50% { transform: rotate(180deg) scale(1.08); box-shadow: 0 0 45px #c084fc, 0 0 70px #7e22ce; }
+      100% { transform: rotate(360deg) scale(0.95); box-shadow: 0 0 20px #a855f7; }
+    }
+
+    .crystal-anim {
+      animation: crystalSwirl 3.5s infinite ease-in-out;
+    }
+
+    /* タイマーのパルス鼓動 */
+    @keyframes heartPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4)); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.9)); }
+    }
+
+    .timer-critical {
+      animation: heartPulse 0.8s infinite ease-in-out;
+    }
+
+    /* 3Dカードフリップ */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .transform-style-preserve-3d {
+      transform-style: preserve-3d;
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(245, 158, 11, 0.4);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(245, 158, 11, 0.7);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between transition-colors duration-1000 relative bg-night-950 text-slate-100">
+
+  <!-- 背景グラデーション -->
+  <div id="ambient-overlay" class="fixed inset-0 pointer-events-none transition-opacity duration-1000 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-night-900/80 to-night-950 z-0"></div>
+
+  <!-- 焚き火の火の粉・霧パーティクルコンテナ -->
+  <div id="particles-container" class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div class="fog-layer absolute inset-0 w-[140%] h-full"></div>
+  </div>
+
+  <!-- フェーズ切り替えシネマティックスプラッシュ画面 -->
+  <div id="phase-transition-overlay" class="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/85 backdrop-blur-md opacity-0 transition-opacity duration-500">
+    <div id="phase-transition-content" class="text-center px-4">
+      <div id="phase-splash-icon" class="w-20 h-20 mx-auto mb-4 flex items-center justify-center"></div>
+      <h2 id="phase-splash-title" class="text-3xl md:text-5xl font-cinzel font-bold text-amber-300 tracking-widest drop-shadow-[0_4px_16px_rgba(245,158,11,0.5)]"></h2>
+      <p id="phase-splash-sub" class="text-sm md:text-lg text-slate-300 mt-2 font-serif tracking-wider"></p>
+    </div>
+  </div>
+
+  <!-- 占い師の水晶透視モーダル -->
+  <div id="seer-reveal-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden transition-opacity duration-300 p-4">
+    <div class="relative max-w-sm w-full bg-night-900 border-2 border-purple-500/70 rounded-2xl p-6 text-center shadow-[0_0_50px_rgba(168,85,247,0.35)] space-y-4">
+      <div class="w-24 h-24 mx-auto rounded-full bg-purple-950/90 border-2 border-purple-400/80 flex items-center justify-center crystal-anim text-4xl shadow-inner">
+        🔮
+      </div>
+      <span class="text-xs uppercase tracking-widest text-purple-400 font-bold block">水晶玉の透視結果</span>
+      <h3 id="seer-modal-name" class="text-2xl font-bold text-slate-100">村人名</h3>
+      <div id="seer-modal-result" class="py-3 px-4 rounded-xl font-bold text-lg">
+        <!-- 人狼か人間か動的挿入 -->
+      </div>
+      <button onclick="document.getElementById('seer-reveal-modal').classList.add('hidden')" class="w-full py-2.5 bg-purple-800 hover:bg-purple-700 text-purple-100 font-bold text-xs rounded-xl shadow-lg transition-all active:scale-95">
+        水晶をしまう（了解）
+      </button>
+    </div>
+  </div>
+
+  <!-- トースト通知コンテナ -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4"></div>
+
+  <!-- ヘッダー -->
+  <header class="relative z-10 w-full border-b border-amber-900/40 bg-night-900/90 backdrop-blur-md px-4 py-3">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <!-- 焚き火/月の動的SVGアイコン -->
+        <div id="header-icon-container" class="w-10 h-10 rounded-full bg-amber-950/70 border border-amber-500/40 flex items-center justify-center fire-glow shadow-lg">
+          <svg id="header-fire-icon" class="w-6 h-6 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C8.5 7 6 9.5 6 13a6 6 0 0 0 12 0c0-3.5-2.5-6-6-11zm0 15c-1.66 0-3-1.34-3-3 0-1.5 1-2.5 2-4 .5 1.5 1 2 2 3a1.5 1.5 0 0 1-1 4z"/>
+          </svg>
+          <svg id="header-moon-icon" class="w-6 h-6 text-cyan-400 hidden moon-glow" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-cinzel font-bold text-amber-400 tracking-wider flex items-center gap-2">
+            中世の村の人狼
+            <span class="text-[10px] font-sans font-normal px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-700/50 text-amber-300">P2P オンライン</span>
+          </h1>
+          <p id="connection-status-text" class="text-xs text-slate-400">待機中...</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- タイマーバッジ -->
+        <div id="timer-badge" class="hidden items-center space-x-1.5 px-3 py-1 rounded-full bg-night-800 border border-amber-500/50 text-amber-300 font-mono text-sm font-bold shadow-md">
+          <span class="text-xs">⏳</span>
+          <span id="timer-seconds">00</span>s
+        </div>
+        <!-- 部屋コードバッジ -->
+        <div id="room-code-badge" class="hidden items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/60 text-amber-300 font-mono text-xs font-bold shadow-md cursor-pointer active:scale-95" title="タップしてコピー">
+          <span class="text-slate-400">村:</span>
+          <span id="room-code-display" class="tracking-widest font-black">----</span>
+          <span class="text-[10px] text-amber-500">📋</span>
+        </div>
+        <!-- サウンド切替 -->
+        <button id="btn-sound-toggle" class="p-2 rounded-lg bg-night-800 border border-slate-700 text-slate-300 hover:text-amber-400 text-xs transition-colors">
+          🔊
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-5xl w-full mx-auto p-4 flex-grow flex flex-col justify-center">
+
+    <!-- ① ロビー画面 -->
+    <div id="view-lobby" class="w-full max-w-xl mx-auto bg-night-900/90 border border-amber-900/50 rounded-2xl p-6 shadow-2xl backdrop-blur-md space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-block p-3 rounded-full bg-amber-950/60 border border-amber-600/40 fire-glow mb-1">
+          <span class="text-3xl">🐺</span>
+        </div>
+        <h2 class="text-2xl font-cinzel font-bold text-amber-400 tracking-wide">村の集会所へようこそ</h2>
+        <p class="text-xs text-slate-400">焚き火を囲み、人狼の影が潜む村の運命を決める集いに参加しましょう。</p>
+      </div>
+
+      <!-- プレイヤー名入力 -->
+      <div class="space-y-1">
+        <label class="text-xs text-amber-200/80 font-bold block">あなたの村人名</label>
+        <input id="input-player-name" type="text" maxlength="12" placeholder="例: アーサー" class="w-full px-4 py-2.5 rounded-xl bg-night-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors text-sm font-bold shadow-inner">
+      </div>
+
+      <!-- 部屋作成 or 参加タブ -->
+      <div id="lobby-action-tabs" class="grid grid-cols-2 gap-2 bg-night-800 p-1 rounded-xl border border-slate-800">
+        <button id="tab-btn-create" class="py-2 rounded-lg text-xs font-bold transition-all bg-amber-600 text-slate-950 shadow-md">
+          村を建てる（親機）
+        </button>
+        <button id="tab-btn-join" class="py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+          村に入る（子機）
+        </button>
+      </div>
+
+      <!-- 部屋作成パネル -->
+      <div id="panel-create" class="space-y-4">
+        <div class="p-3 bg-night-850 rounded-xl border border-amber-900/30 text-xs text-slate-300 space-y-1">
+          <p class="font-bold text-amber-300">👑 親機（ホスト）の役割:</p>
+          <p>発行される4桁の部屋コードを友人に共有してください。友人は「村に入る」からコードを入力して参加できます（テスト用のBot村人も自由に追加可能）。</p>
+        </div>
+        <button id="btn-create-room" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-night-950 font-cinzel font-bold rounded-xl shadow-lg transition-all active:scale-[0.99]">
+          村を興す（部屋を作成）
+        </button>
+      </div>
+
+      <!-- 部屋参加パネル -->
+      <div id="panel-join" class="space-y-4 hidden">
+        <div class="space-y-1">
+          <label class="text-xs text-amber-200/80 font-bold block">4桁の部屋コード</label>
+          <input id="input-join-code" type="text" maxlength="6" placeholder="例: 4821" class="w-full px-4 py-2.5 rounded-xl bg-night-800 border border-slate-700 text-amber-400 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors text-center text-lg font-mono font-bold tracking-widest uppercase shadow-inner">
+        </div>
+        <button id="btn-join-room" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-slate-100 font-cinzel font-bold rounded-xl shadow-lg transition-all active:scale-[0.99]">
+          村へ向かう（接続する）
+        </button>
+      </div>
+
+      <!-- 待機室（プレイヤー一覧＆役職設定） -->
+      <div id="lobby-room-area" class="space-y-4 hidden border-t border-slate-800 pt-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <span>👥</span> 集まった村人 (<span id="lobby-player-count">1</span>/8人)
+          </span>
+          <!-- Bot追加/削除ボタン -->
+          <div id="host-bot-controls" class="flex gap-1.5 hidden">
+            <button id="btn-add-bot" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 transition-all">
+              + Bot追加
+            </button>
+            <button id="btn-remove-bot" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-rose-400 transition-all">
+              - Bot削除
+            </button>
+          </div>
+        </div>
+
+        <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <!-- 参加者アバター動的生成 -->
+        </div>
+
+        <!-- ホスト専用役職構成設定 -->
+        <div id="host-role-config" class="p-3 bg-night-850 rounded-xl border border-slate-800 space-y-2 hidden">
+          <div class="text-xs font-bold text-amber-300">役職配分の目安（自動調整）</div>
+          <div id="role-composition-desc" class="text-xs text-slate-400 font-mono">
+            人狼: 1 / 占い師: 1 / 騎士: 1 / 市民: 残り
+          </div>
+        </div>
+
+        <div id="host-start-container" class="hidden">
+          <button id="btn-start-game" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-night-950 font-cinzel font-bold text-base rounded-xl shadow-xl transition-all active:scale-[0.99]">
+            運命の幕を開ける（ゲーム開始）
+          </button>
+          <p id="start-condition-note" class="text-[11px] text-center text-slate-400 mt-1.5">最低4人必要です（Botを追加して即時テスト可能）</p>
+        </div>
+
+        <div id="guest-waiting-container" class="text-center py-2 hidden">
+          <p class="text-xs text-amber-400 animate-pulse font-bold">村長（ホスト）がゲームを開始するのを待っています...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 役職確認フェーズ -->
+    <div id="view-role-reveal" class="w-full max-w-md mx-auto hidden space-y-6">
+      <div class="text-center space-y-1">
+        <h2 class="text-2xl font-cinzel font-bold text-amber-400">授かりし運命の役職</h2>
+        <p class="text-xs text-slate-400">カードをタップして裏返し、誰にも見られないよう確認してください。</p>
+      </div>
+
+      <!-- 3Dタロットフリップカード -->
+      <div class="perspective-1000 w-64 h-96 mx-auto cursor-pointer" id="role-card-container">
+        <div id="role-card-inner" class="w-full h-full relative transform-style-preserve-3d transition-transform duration-700 rounded-2xl shadow-2xl border-2 border-amber-600/50">
+          
+          <!-- 表（未めくり面） -->
+          <div class="absolute inset-0 backface-hidden bg-gradient-to-b from-night-900 to-night-950 rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-amber-500/30">
+            <div class="w-20 h-20 rounded-full border-2 border-amber-500/40 flex items-center justify-center text-4xl mb-4 bg-amber-950/40 fire-glow">
+              📜
+            </div>
+            <div class="text-xs font-cinzel text-amber-300 tracking-widest uppercase mb-1">Confidential</div>
+            <h3 class="text-lg font-bold text-slate-200">あなたの役職</h3>
+            <p class="text-xs text-slate-400 mt-4 px-2">タップして封印を解く</p>
+          </div>
+
+          <!-- 裏（役職開示面） -->
+          <div id="role-card-back" class="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-b from-night-900 to-night-950 rounded-2xl flex flex-col items-center justify-between p-6 text-center border-2 border-amber-500">
+            <div id="role-icon-large" class="text-5xl mt-4">🐺</div>
+            <div class="space-y-1">
+              <span id="role-camp-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-700">人狼陣営</span>
+              <h3 id="role-name-display" class="text-2xl font-bold text-amber-400">人狼</h3>
+              <p id="role-desc-display" class="text-xs text-slate-300 leading-relaxed px-2 mt-2">夜の間に仲間と共謀し、村人を1人選んで倒します。</p>
+            </div>
+            <div id="role-team-info" class="text-xs text-rose-400 font-bold hidden bg-rose-950/60 p-2 rounded-lg border border-rose-800 w-full"></div>
+            <p class="text-[10px] text-slate-500">もう一度タップで伏せる</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="text-center">
+        <button id="btn-confirm-role" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-night-950 font-cinzel font-bold text-sm rounded-xl shadow-lg transition-all active:scale-95">
+          役職を確認した（夜明けへ）
+        </button>
+      </div>
+    </div>
+
+    <!-- ③ ゲーム本編（昼・議論 / 投票 / 夜） -->
+    <div id="view-game" class="w-full hidden space-y-4">
+      
+      <!-- フェーズバナー -->
+      <div id="game-phase-banner" class="bg-night-900/90 border border-amber-900/50 rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+          <div id="game-phase-badge" class="px-3 py-1 rounded-lg bg-amber-950 border border-amber-600/50 text-amber-300 font-bold text-xs flex items-center gap-1.5">
+            <span id="game-phase-icon">☀️</span>
+            <span id="game-day-label">1日目</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 id="game-phase-title" class="text-base sm:text-lg font-bold text-slate-100">白日の広場（議論）</h2>
+              <!-- 投票進捗ステータスバッジ -->
+              <span id="vote-progress-badge" class="hidden text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-950 text-amber-300 border border-amber-600/50">
+                投票: 0/0人完了
+              </span>
+            </div>
+            <p id="game-
